@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MUBRA SYSTEM CORE 9.v1 | රසායනික ගුරු ශ්‍රේෂ්ඨ</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- marked.js for Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- KaTeX for Math Rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'neon':    '#39FF14',
+            'cyber':   '#FFFB00',
+            'dim':     '#1a2e1a',
+            'matrix':  '#0d1a0d',
+            'panel':   '#050f05',
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'Courier New', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ─── ROOT & BODY ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --neon:    #39FF14;
+      --cyber:   #FFFB00;
+      --dim:     #1a2e1a;
+      --matrix:  #0d1a0d;
+      --panel:   #050f05;
+      --red:     #FF3131;
+      --cyan:    #00FFFF;
+    }
+
+    html, body {
+      height: 100%;
+      background: #000;
+      color: var(--neon);
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      overflow: hidden;
+    }
+
+    /* ─── CRT SCANLINE OVERLAY ────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+      animation: scanMove 8s linear infinite;
+    }
+
+    /* CRT vignette */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    @keyframes scanMove {
+      0%   { background-position: 0 0; }
+      100% { background-position: 0 100px; }
+    }
+
+    /* ─── FLICKER ON LOAD ─────────────────────────── */
+    @keyframes flicker {
+      0%   { opacity: 0; }
+      5%   { opacity: 1; }
+      6%   { opacity: 0.2; }
+      7%   { opacity: 1; }
+      10%  { opacity: 0.6; }
+      11%  { opacity: 1; }
+      50%  { opacity: 1; }
+      51%  { opacity: 0.7; }
+      52%  { opacity: 1; }
+      100% { opacity: 1; }
+    }
+
+    #app { animation: flicker 1.4s ease-out forwards; }
+
+    /* ─── NEON TEXT GLOW ──────────────────────────── */
+    .neon-text {
+      color: var(--neon);
+      text-shadow: 0 0 4px var(--neon), 0 0 10px var(--neon), 0 0 20px var(--neon);
+    }
+    .cyber-text {
+      color: var(--cyber);
+      text-shadow: 0 0 4px var(--cyber), 0 0 10px var(--cyber), 0 0 18px var(--cyber);
+    }
+    .cyan-text {
+      color: var(--cyan);
+      text-shadow: 0 0 4px var(--cyan), 0 0 10px var(--cyan);
+    }
+    .red-text {
+      color: var(--red);
+      text-shadow: 0 0 4px var(--red), 0 0 10px var(--red);
+    }
+
+    /* ─── NEON BORDERS / PANELS ───────────────────── */
+    .neon-border {
+      border: 1px solid var(--neon);
+      box-shadow: 0 0 6px var(--neon), inset 0 0 6px rgba(57,255,20,0.04);
+    }
+    .cyber-border {
+      border: 1px solid var(--cyber);
+      box-shadow: 0 0 6px var(--cyber), inset 0 0 6px rgba(255,251,0,0.04);
+    }
+
+    /* ─── SCROLLBAR ───────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: var(--neon); border-radius: 2px; box-shadow: 0 0 6px var(--neon); }
+
+    /* ─── SIDEBAR ─────────────────────────────────── */
+    #sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--panel);
+      border-right: 1px solid rgba(57,255,20,0.3);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s ease;
+    }
+    #sidebar.collapsed { width: 0; min-width: 0; overflow: hidden; }
+
+    .tree-item {
+      cursor: pointer;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: rgba(57,255,20,0.7);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .tree-item:hover {
+      color: var(--neon);
+      background: rgba(57,255,20,0.08);
+      text-shadow: 0 0 6px var(--neon);
+    }
+    .tree-item.active {
+      color: var(--cyber);
+      background: rgba(255,251,0,0.06);
+      text-shadow: 0 0 8px var(--cyber);
+    }
+    .tree-dir {
+      padding: 6px 12px 2px;
+      font-size: 10px;
+      color: rgba(57,255,20,0.4);
+      letter-spacing: 0.08em;
+      margin-top: 6px;
+    }
+    .tree-indent { padding-left: 24px; }
+
+    /* ─── HEADER ──────────────────────────────────── */
+    #header {
+      background: var(--panel);
+      border-bottom: 1px solid rgba(57,255,20,0.3);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    /* ─── MODE TOGGLE ─────────────────────────────── */
+    .mode-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid rgba(57,255,20,0.4);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .mode-btn {
+      padding: 5px 12px;
+      font-size: 10px;
+      font-family: inherit;
+      background: transparent;
+      color: rgba(57,255,20,0.5);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .mode-btn.active-logic {
+      background: rgba(57,255,20,0.15);
+      color: var(--neon);
+      text-shadow: 0 0 6px var(--neon);
+    }
+    .mode-btn.active-turbo {
+      background: rgba(255,251,0,0.12);
+      color: var(--cyber);
+      text-shadow: 0 0 6px var(--cyber);
+    }
+    .mode-divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(57,255,20,0.3);
+    }
+
+    /* ─── CHAT AREA ───────────────────────────────── */
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ─── MESSAGE BUBBLES ─────────────────────────── */
+    .msg-user {
+      align-self: flex-end;
+      max-width: 70%;
+    }
+    .msg-user .bubble {
+      background: rgba(57,255,20,0.07);
+      border: 1px solid rgba(57,255,20,0.3);
+      padding: 10px 16px;
+      font-size: 13px;
+      color: var(--neon);
+      text-shadow: 0 0 4px rgba(57,255,20,0.4);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .msg-ai {
+      align-self: flex-start;
+      max-width: 90%;
+      width: 100%;
+    }
+    .msg-ai .ai-header {
+      font-size: 10px;
+      color: rgba(57,255,20,0.4);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .msg-ai .bubble {
+      background: rgba(5,15,5,0.9);
+      border-left: 2px solid var(--neon);
+      padding: 14px 18px;
+      font-size: 13px;
+      color: rgba(57,255,20,0.9);
+      line-height: 1.8;
+    }
+
+    /* Markdown inside AI bubble */
+    .msg-ai .bubble h1, .msg-ai .bubble h2, .msg-ai .bubble h3 {
+      color: var(--cyber);
+      text-shadow: 0 0 8px var(--cyber);
+      margin: 12px 0 6px;
+      font-weight: 700;
+    }
+    .msg-ai .bubble h1 { font-size: 16px; }
+    .msg-ai .bubble h2 { font-size: 14px; }
+    .msg-ai .bubble h3 { font-size: 13px; }
+    .msg-ai .bubble strong { color: var(--cyber); }
+    .msg-ai .bubble em { color: var(--cyan); font-style: italic; }
+    .msg-ai .bubble ul, .msg-ai .bubble ol { padding-left: 20px; margin: 6px 0; }
+    .msg-ai .bubble li { margin: 3px 0; }
+    .msg-ai .bubble code {
+      background: rgba(57,255,20,0.08);
+      color: var(--cyber);
+      padding: 1px 6px;
+      border: 1px solid rgba(57,255,20,0.2);
+      font-family: inherit;
+      font-size: 12px;
+    }
+    .msg-ai .bubble pre {
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(57,255,20,0.25);
+      padding: 12px;
+      margin: 8px 0;
+      overflow-x: auto;
+      border-left: 3px solid var(--neon);
+    }
+    .msg-ai .bubble pre code {
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: var(--neon);
+      display: block;
+    }
+    .msg-ai .bubble blockquote {
+      border-left: 3px solid var(--cyber);
+      padding-left: 12px;
+      color: rgba(255,251,0,0.7);
+      margin: 8px 0;
+    }
+    .msg-ai .bubble table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 8px 0;
+      font-size: 12px;
+    }
+    .msg-ai .bubble th {
+      border: 1px solid rgba(57,255,20,0.4);
+      padding: 6px 10px;
+      background: rgba(57,255,20,0.08);
+      color: var(--cyber);
+      text-align: left;
+    }
+    .msg-ai .bubble td {
+      border: 1px solid rgba(57,255,20,0.2);
+      padding: 5px 10px;
+    }
+    .msg-ai .bubble hr {
+      border: none;
+      border-top: 1px solid rgba(57,255,20,0.2);
+      margin: 12px 0;
+    }
+
+    /* KaTeX */
+    .katex { color: var(--cyber) !important; }
+    .katex-display { margin: 10px 0 !important; }
+
+    /* ─── TYPING INDICATOR ────────────────────────── */
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+    .cursor-blink { animation: blink 1s infinite; }
+
+    @keyframes dotPulse {
+      0%,80%,100% { opacity: 0.2; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+    .typing-dot { animation: dotPulse 1.4s infinite; display: inline-block; width: 6px; height: 6px; background: var(--neon); border-radius: 50%; margin: 0 2px; box-shadow: 0 0 6px var(--neon); }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* ─── INPUT AREA ──────────────────────────────── */
+    #input-bar {
+      background: var(--panel);
+      border-top: 1px solid rgba(57,255,20,0.25);
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    #prompt-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--neon);
+      font-family: inherit;
+      font-size: 13px;
+      resize: none;
+      width: 100%;
+      line-height: 1.6;
+      caret-color: var(--neon);
+      min-height: 24px;
+      max-height: 120px;
+    }
+    #prompt-input::placeholder { color: rgba(57,255,20,0.25); }
+
+    .action-btn {
+      background: transparent;
+      border: 1px solid rgba(57,255,20,0.4);
+      color: rgba(57,255,20,0.7);
+      font-family: inherit;
+      font-size: 10px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .action-btn:hover {
+      border-color: var(--neon);
+      color: var(--neon);
+      background: rgba(57,255,20,0.06);
+      box-shadow: 0 0 8px rgba(57,255,20,0.2);
+    }
+    .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .send-btn {
+      background: rgba(57,255,20,0.1);
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 6px 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-shadow: 0 0 6px var(--neon);
+      box-shadow: 0 0 8px rgba(57,255,20,0.15);
+      letter-spacing: 0.06em;
+    }
+    .send-btn:hover {
+      background: rgba(57,255,20,0.18);
+      box-shadow: 0 0 14px rgba(57,255,20,0.35);
+    }
+    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ─── IMAGE PREVIEW ───────────────────────────── */
+    #image-preview-wrap {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      background: rgba(57,255,20,0.04);
+      border: 1px solid rgba(57,255,20,0.2);
+      font-size: 10px;
+      color: rgba(57,255,20,0.6);
+    }
+    #image-preview-wrap.show { display: flex; }
+    #image-preview-thumb { width: 40px; height: 40px; object-fit: cover; border: 1px solid rgba(57,255,20,0.3); }
+
+    /* ─── BOOT SCREEN ─────────────────────────────── */
+    #boot-screen {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      gap: 6px;
+    }
+    .boot-line { font-size: 12px; opacity: 0; animation: bootAppear 0.2s forwards; }
+    @keyframes bootAppear { to { opacity: 1; } }
+
+    /* ─── QUICK-PROMPT CHIPS ──────────────────────── */
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border: 1px solid rgba(57,255,20,0.25);
+      font-size: 10px;
+      color: rgba(57,255,20,0.55);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .chip:hover {
+      border-color: var(--neon);
+      color: var(--neon);
+      background: rgba(57,255,20,0.06);
+    }
+
+    /* ─── STATUS BAR ──────────────────────────────── */
+    #status-bar {
+      background: rgba(57,255,20,0.04);
+      border-top: 1px solid rgba(57,255,20,0.12);
+      padding: 3px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 9px;
+      color: rgba(57,255,20,0.35);
+      flex-shrink: 0;
+    }
+
+    /* ─── SIDEBAR TOGGLE BTN ──────────────────────── */
+    #sidebar-toggle {
+      background: transparent;
+      border: none;
+      color: rgba(57,255,20,0.5);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 2px 6px;
+      transition: color 0.2s;
+    }
+    #sidebar-toggle:hover { color: var(--neon); }
+
+    /* ─── MISC ────────────────────────────────────── */
+    .prompt-prefix { color: var(--cyber); margin-right: 8px; user-select: none; text-shadow: 0 0 6px var(--cyber); }
+    .input-row { display: flex; align-items: flex-end; gap: 8px; }
+
+    .glitch {
+      position: relative;
+      display: inline-block;
+    }
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    .glitch::before {
+      color: var(--red);
+      animation: glitch1 3s infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+    }
+    .glitch::after {
+      color: var(--cyan);
+      animation: glitch2 3s infinite;
+      clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+    }
+    @keyframes glitch1 {
+      0%,90%,100% { transform: translate(0); opacity: 0; }
+      92% { transform: translate(-2px, 1px); opacity: 0.8; }
+      94% { transform: translate(2px, -1px); opacity: 0.8; }
+      96% { transform: translate(0); opacity: 0; }
+    }
+    @keyframes glitch2 {
+      0%,88%,100% { transform: translate(0); opacity: 0; }
+      90% { transform: translate(2px, 1px); opacity: 0.7; }
+      92% { transform: translate(-2px, 0); opacity: 0.7; }
+      94% { transform: translate(0); opacity: 0; }
+    }
+
+    /* Pulse dot */
+    .pulse-dot { width: 6px; height: 6px; background: var(--neon); border-radius: 50%; display: inline-block; box-shadow: 0 0 6px var(--neon); animation: pulseDot 2s infinite; }
+    @keyframes pulseDot { 0%,100% { opacity: 1; box-shadow: 0 0 6px var(--neon); } 50% { opacity: 0.4; box-shadow: 0 0 2px var(--neon); } }
+
+    .error-msg { color: var(--red); text-shadow: 0 0 6px var(--red); }
+
+    /* Image in user bubble */
+    .user-img { max-width: 200px; max-height: 160px; border: 1px solid rgba(57,255,20,0.3); margin-top: 6px; display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ BOOT SCREEN -->
+<div id="boot-screen">
+  <div class="neon-text text-center" style="font-size:11px; letter-spacing:0.1em; margin-bottom:20px;">
+    MUBRA SYSTEM CORE 9.v1 &nbsp;|&nbsp; INITIALIZING...
+  </div>
+  <div id="boot-lines" style="text-align:left; width:340px;"></div>
+  <div class="cyber-text" style="margin-top:24px; font-size:10px; letter-spacing:0.15em;" id="boot-ready"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════ APP SHELL -->
+<div id="app" style="display:none; height:100vh; display:flex; flex-direction:column; opacity:0;">
+
+  <!-- ── HEADER ───────────────────────────────────── -->
+  <div id="header">
+    <button id="sidebar-toggle" title="Toggle Sidebar">☰</button>
+
+    <!-- Brand -->
+    <div style="display:flex; align-items:baseline; gap:10px; flex:1;">
+      <span class="glitch neon-text" data-text="MUBRA SYSTEM CORE 9.v1" style="font-size:13px; font-weight:700; letter-spacing:0.08em;">
+        MUBRA SYSTEM CORE 9.v1
+      </span>
+      <span style="font-size:9px; color:rgba(57,255,20,0.35); letter-spacing:0.06em;">
+        රසායනික ගුරු ශ්‍රේෂ්ඨ // G.C.E A/L CHEMISTRY MENTOR
+      </span>
+    </div>
+
+    <!-- Mode Toggle -->
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+      <div style="font-size:9px; color:rgba(57,255,20,0.35);">
+        ▶ MODE SELECT / ක්‍රමය තෝරන්න
+      </div>
+      <div class="mode-toggle-wrap">
+        <button class="mode-btn active-logic" id="btn-logic" onclick="setMode('logic')">
+          ⬡ LOGIC-CORE [CLAUDE]
+        </button>
+        <div class="mode-divider"></div>
+        <button class="mode-btn" id="btn-turbo" onclick="setMode('turbo')">
+          ⚡ TURBO-VISION [GEMINI]
+        </button>
+      </div>
+      <div id="mode-label" style="font-size:8px; color:rgba(57,255,20,0.4); text-align:right;">
+        ACTIVE: Deep Theory &amp; Reasoning / ගැඹුරු විශ්ලේෂණය
+      </div>
+    </div>
+
+    <!-- Clear btn -->
+    <button class="action-btn" onclick="clearChat()" title="Clear Chat / සංවාදය මකන්න" style="margin-left:8px;">
+      ⟳ CLEAR / මකන්න
+    </button>
+  </div>
+
+  <!-- ── MAIN CONTENT ──────────────────────────────── -->
+  <div style="display:flex; flex:1; overflow:hidden;">
+
+    <!-- ─ SIDEBAR ─────────────────────────────────── -->
+    <div id="sidebar">
+      <!-- Sidebar Header -->
+      <div style="padding:10px 12px; border-bottom:1px solid rgba(57,255,20,0.15);">
+        <div style="font-size:9px; color:rgba(57,255,20,0.4); letter-spacing:0.1em;">
+          ┌─ FILE SYSTEM / ගොනු පද්ධතිය
+        </div>
+        <div class="neon-text" style="font-size:11px; margin-top:2px;">
+          /root/mubra_core/
+        </div>
+      </div>
+
+      <!-- Tree -->
+      <div style="flex:1; padding: 8px 0; overflow-y:auto;">
+
+        <!-- Past Papers -->
+        <div class="tree-dir">📁 /past_papers/1985-2025</div>
+        <div class="tree-item tree-indent" onclick="insertTopic('2024 A/L Chemistry Past Paper solutions - ගැටළු විශ්ලේෂණය')">
+          └─ 📄 2024_AL_solutions.dat
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('2023 A/L Chemistry Paper answers with steps')">
+          └─ 📄 2023_AL_solutions.dat
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('2022 A/L Combined Maths + Chemistry overlaps')">
+          └─ 📄 2022_AL_solutions.dat
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Historical AL papers 1985-2010 trend analysis - ඓතිහාසික ප්‍රශ්න')">
+          └─ 📁 archive_1985-2010/
+        </div>
+
+        <!-- Organic Chemistry -->
+        <div class="tree-dir">📁 /organic_chemistry/</div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Explain hydrocarbon reactions: alkanes, alkenes, alkynes with mechanisms - හයිඩ්‍රොකාබන් ප්‍රතිෂ්ක්‍රියා')">
+          └─ ⚗ hydrocarbons.rxn
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Functional groups: alcohols, aldehydes, ketones, carboxylic acids - ක්‍රියාකාරී කණ්ඩ')">
+          └─ ⚗ functional_groups.rxn
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Benzene and aromatic compounds - substitution reactions - බෙන්සීන් ප්‍රතිෂ්ක්‍රියා')">
+          └─ ⚗ aromatic.rxn
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Polymers: addition and condensation polymerisation with examples - පොලිමර')">
+          └─ ⚗ polymers.rxn
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Amino acids, proteins, carbohydrates - biomolecules - ජෛව අණු')">
+          └─ ⚗ biomolecules.rxn
+        </div>
+
+        <!-- Inorganic Chemistry -->
+        <div class="tree-dir">📁 /inorganic_chemistry/</div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Periodic table trends: ionization energy, electronegativity, atomic radius - ආවර්තිතා නිරීක්ෂණ')">
+          └─ 🔬 periodic_trends.dat
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('s-block elements: Group 1 and 2 chemistry - s කොට්ඨාස')">
+          └─ 🔬 s_block.dat
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('p-block elements: Groups 13-18, halogens, noble gases - p කොට්ඨාස')">
+          └─ 🔬 p_block.dat
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('d-block transition metals: properties, complex ions, color - d කොට්ඨාස')">
+          └─ 🔬 d_block_transition.dat
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Electrochemistry: electrolysis, galvanic cells, electrode potentials - විද්‍යුත් රසායනය')">
+          └─ 🔬 electrochemistry.dat
+        </div>
+
+        <!-- Physical Chemistry -->
+        <div class="tree-dir">📁 /physical_chemistry/</div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Chemical equilibrium: Le Chatelier\'s principle, Kc, Kp calculations - රාසායනික සාම්‍යය')">
+          └─ 📊 equilibrium.calc
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Thermodynamics: enthalpy, entropy, Gibbs free energy - ΔG, ΔH, ΔS - ඉෂ්ටශීලිතාව')">
+          └─ 📊 thermodynamics.calc
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Kinetics: rate of reaction, rate law, activation energy, Arrhenius equation - ගතිකිනිති')">
+          └─ 📊 kinetics.calc
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Acids and bases: pH, buffer solutions, titration calculations - pH ගණනය')">
+          └─ 📊 acid_base.calc
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('States of matter: ideal gas laws, PV=nRT calculations - ගෑස් නීති')">
+          └─ 📊 gas_laws.calc
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Atomic structure: quantum numbers, orbitals, electronic configuration - පරමාණු ව්‍යූහය')">
+          └─ 📊 atomic_structure.calc
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Electrochemistry: standard electrode potential, Nernst equation - Nernst සමීකරණය')">
+          └─ 📊 electrode_potential.calc
+        </div>
+
+        <!-- Practical -->
+        <div class="tree-dir">📁 /practicals/</div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Titration practicals: steps, calculations, common errors - ටයිට්‍රේෂන් ප්‍රායෝගිකය')">
+          └─ 🧪 titration_guide.log
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Qualitative analysis: identifying unknown ions and compounds - ගුණාත්මක විශ්ලේෂණය')">
+          └─ 🧪 qualitative_analysis.log
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Chromatography: paper, TLC, column methods - වර්ණලේඛ ක්‍රම')">
+          └─ 🧪 chromatography.log
+        </div>
+
+        <!-- Marking Schemes -->
+        <div class="tree-dir">📁 /marking_schemes/</div>
+        <div class="tree-item tree-indent" onclick="insertTopic('How are A/L Chemistry papers marked? Examiner tips - ලකුණු ක්‍රමය')">
+          └─ 📋 al_marking_guide.txt
+        </div>
+        <div class="tree-item tree-indent" onclick="insertTopic('Common mistakes students make in A/L Chemistry - සිසුන්ගේ දෝෂ')">
+          └─ 📋 common_errors.txt
+        </div>
+
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div style="border-top:1px solid rgba(57,255,20,0.12); padding:10px 12px;">
+        <div style="font-size:9px; color:rgba(57,255,20,0.3); line-height:1.8;">
+          <div>⚡ Powered by Mubra Webworks</div>
+          <div>🏆 Main Sponsor: Mubra Trading</div>
+          <div style="margin-top:4px; color:rgba(255,251,0,0.3);">
+            v9.1.0 | BUILD 2025.06
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ CHAT PANEL ───────────────────────────────── -->
+    <div style="flex:1; display:flex; flex-direction:column; overflow:hidden; background:#000;">
+
+      <!-- Chat Messages -->
+      <div id="chat-messages">
+        <!-- Welcome Message -->
+        <div class="msg-ai">
+          <div class="ai-header">
+            <span class="pulse-dot"></span>
+            <span>MUBRA SYSTEM CORE 9.v1 &nbsp;|&nbsp; BOOT SEQUENCE COMPLETE</span>
+          </div>
+          <div class="bubble">
+            <div style="color:var(--cyber); margin-bottom:10px; font-weight:700; font-size:14px;">
+              ══ සිංහල A/L රසායන ශාස්ත්‍ර AI ගුරු ශ්‍රේෂ්ඨ සජීවීව ක්‍රියාත්මකයි ══
+            </div>
+            <div style="margin-bottom:8px;">
+              ආයුබෝවන්! මම <strong>Mubra System Core 9.v1</strong> — ඔබේ A/L Chemistry AI ගුරු ශ්‍රේෂ්ඨ.
+            </div>
+            <div style="margin-bottom:8px; color:rgba(57,255,20,0.75);">
+              ▶ <strong>Organic, Inorganic, Physical Chemistry</strong> සම්බන්ධ ඕනෑම ප්‍රශ්නයක් අසන්න.<br/>
+              ▶ Past papers, calculations, mechanisms, reaction equations — සියල්ල.
+            </div>
+            <div style="border-left:2px solid var(--cyber); padding-left:10px; margin:12px 0; color:rgba(255,251,0,0.8);">
+              📌 <strong>MODE SELECT:</strong><br/>
+              &nbsp;&nbsp;⬡ <strong>LOGIC-CORE</strong> = ගැඹුරු විශ්ලේෂණය (Claude Sonnet)<br/>
+              &nbsp;&nbsp;⚡ <strong>TURBO-VISION</strong> = ශීඝ්‍ර පිළිතුරු + රූපකලා (Gemini Flash)
+            </div>
+            <div style="font-size:11px; color:rgba(57,255,20,0.5);">
+              ▶ ප්‍රශ්නය ටයිප් කරන්න / රූප SCAN_IMAGE භාවිතයෙන් upload කරන්න.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Prompt Chips -->
+      <div id="chips-bar" style="padding:6px 20px; display:flex; flex-wrap:wrap; gap:6px; border-top:1px solid rgba(57,255,20,0.08); background:rgba(5,15,5,0.5);">
+        <span style="font-size:9px; color:rgba(57,255,20,0.3); align-self:center;">QUICK ACCESS:</span>
+        <span class="chip" onclick="chipPrompt('H₂SO₄ නිෂ්පාදනය ගැන step-by-step පැහැදිලි කරන්න')">⚗ H₂SO₄ ක්‍රමවේදය</span>
+        <span class="chip" onclick="chipPrompt('Le Chatelier\'s principle සිංහලෙන් උදාහරණ සමඟ')">📊 Le Chatelier</span>
+        <span class="chip" onclick="chipPrompt('Alkene addition reactions - HBr, H₂O, Cl₂ mechanisms')">🔗 Alkene Rxns</span>
+        <span class="chip" onclick="chipPrompt('Buffer solution pH calculation: HA/A⁻ system, Henderson-Hasselbalch')">🧮 Buffer pH</span>
+        <span class="chip" onclick="chipPrompt('Transition metal complex ions: colour and magnetic properties')">🔬 d-block</span>
+        <span class="chip" onclick="chipPrompt('Electrochemistry: standard electrode potential, EMF calculation with Nernst equation')">⚡ Electrochem</span>
+        <span class="chip" onclick="chipPrompt('2024 A/L Chemistry paper Q1 analysis and marking scheme')">📋 2024 Paper</span>
+        <span class="chip" onclick="chipPrompt('Benzene electrophilic substitution mechanisms: nitration, sulfonation, halogenation')">⬡ Benzene</span>
+      </div>
+
+      <!-- INPUT BAR -->
+      <div id="input-bar">
+        <!-- Image Preview -->
+        <div id="image-preview-wrap">
+          <img id="image-preview-thumb" src="" alt="preview" />
+          <span id="image-preview-name" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+          <button class="action-btn" onclick="removeImage()" style="border-color:var(--red); color:var(--red);">✕ REMOVE</button>
+        </div>
+
+        <!-- Prompt Row -->
+        <div class="input-row" style="border:1px solid rgba(57,255,20,0.25); padding:8px 12px; background:rgba(5,15,5,0.8);">
+          <span class="prompt-prefix">root@mubra:~$</span>
+          <textarea
+            id="prompt-input"
+            placeholder="ප්‍රශ්නය මෙහි ටයිප් කරන්න... / Type your Chemistry question..."
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+        </div>
+
+        <!-- Action Row -->
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button class="action-btn" onclick="triggerImageUpload()" title="Scan Image / රූපය පරිලෝකනය කරන්න">
+            📷 SCAN_IMAGE / රූපය
+          </button>
+          <input type="file" id="image-input" accept="image/*" style="display:none;" onchange="handleImageSelect(event)" />
+
+          <button class="action-btn" onclick="insertTopic('2024 A/L marking scheme analysis')" title="Past Papers">
+            📁 PAST_PAPERS
+          </button>
+
+          <button class="action-btn" onclick="insertTopic('A/L Chemistry formula sheet: all key equations and constants')" title="Formulae">
+            📐 FORMULAE
+          </button>
+
+          <div style="flex:1;"></div>
+
+          <span id="char-count" style="font-size:9px; color:rgba(57,255,20,0.25);"></span>
+
+          <button class="send-btn" id="send-btn" onclick="sendMessage()">
+            ▶ EXECUTE / යවන්න [ENTER]
+          </button>
+        </div>
+      </div>
+
+      <!-- LEGAL STATUS BAR -->
+      <div id="status-bar">
+        <span class="pulse-dot" style="width:5px;height:5px;"></span>
+        <span>SYSTEM ONLINE</span>
+        <span>|</span>
+        <span id="status-mode-label">MODE: LOGIC-CORE // CLAUDE SONNET</span>
+        <span>|</span>
+        <span id="clock-display"></span>
+        <span style="flex:1;"></span>
+        <span style="color:rgba(255,49,49,0.6); font-weight:700; letter-spacing:0.05em;">
+          ⚠ WARNING: AI-generated logic. Cross-check with standard A/L marking schemes. Use at your own risk. / AI විසින් ජනනය කළ. නිල ලකුණු ක්‍රමය සමඟ සත්‍යාපනය කරන්න.
+        </span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ SCRIPTS -->
+<script>
+// ──────────────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────────────
+let currentMode = 'logic';   // 'logic' | 'turbo'
+let chatHistory  = [];        // [{role, content}]
+let pendingImage = null;      // {base64, mime, name}
+let isProcessing = false;
+
+// ──────────────────────────────────────────────────────
+// BOOT SEQUENCE
+// ──────────────────────────────────────────────────────
+const bootLines = [
+  { text: '[ OK ] Initializing MUBRA_KERNEL v9.1.0...', delay: 0 },
+  { text: '[ OK ] Loading Chemistry Corpus: AL_SL_1985-2025...', delay: 180 },
+  { text: '[ OK ] Mounting /root/organic_chemistry/...', delay: 320 },
+  { text: '[ OK ] Mounting /root/inorganic_chemistry/...', delay: 480 },
+  { text: '[ OK ] Mounting /root/physical_chemistry/...', delay: 640 },
+  { text: '[ OK ] Mounting /root/past_papers/...', delay: 800 },
+  { text: '[ OK ] KaTeX Math Engine: READY', delay: 960 },
+  { text: '[ OK ] Marked.js Parser: READY', delay: 1100 },
+  { text: '[ OK ] AI Link: CLAUDE-SONNET ......... CONNECTED', delay: 1250 },
+  { text: '[ OK ] AI Link: GEMINI-FLASH .......... CONNECTED', delay: 1400 },
+  { text: '[ OK ] Sinhala Language Pack: LOADED', delay: 1550 },
+  { text: '[ OK ] CRT Display Driver: ACTIVE', delay: 1680 },
+];
+
+function runBoot() {
+  const container = document.getElementById('boot-lines');
+  bootLines.forEach(({ text, delay }) => {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'boot-line';
+      el.style.animationDelay = '0s';
+      el.style.fontSize = '11px';
+      el.style.marginBottom = '3px';
+      const isOk = text.startsWith('[ OK ]');
+      el.innerHTML = isOk
+        ? `<span style="color:var(--neon);">[ OK ]</span><span style="color:rgba(57,255,20,0.6);"> ${text.slice(6)}</span>`
+        : `<span style="color:var(--cyber);">${text}</span>`;
+      container.appendChild(el);
+    }, delay);
+  });
+
+  setTimeout(() => {
+    const readyEl = document.getElementById('boot-ready');
+    readyEl.textContent = '▶ SYSTEM READY — BOOT COMPLETE ◀';
+    readyEl.style.letterSpacing = '0.15em';
+  }, 1850);
+
+  setTimeout(() => {
+    document.getElementById('boot-screen').style.display = 'none';
+    const app = document.getElementById('app');
+    app.style.opacity = '1';
+    app.style.animation = 'flicker 1.2s ease-out forwards';
+  }, 2400);
+}
+
+// ──────────────────────────────────────────────────────
+// MODE TOGGLE
+// ──────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  const btnLogic = document.getElementById('btn-logic');
+  const btnTurbo = document.getElementById('btn-turbo');
+  const label    = document.getElementById('mode-label');
+  const statusLabel = document.getElementById('status-mode-label');
+
+  btnLogic.className = 'mode-btn';
+  btnTurbo.className = 'mode-btn';
+
+  if (mode === 'logic') {
+    btnLogic.className = 'mode-btn active-logic';
+    label.innerHTML = 'ACTIVE: Deep Theory &amp; Reasoning / ගැඹුරු විශ්ලේෂණය';
+    statusLabel.textContent = 'MODE: LOGIC-CORE // CLAUDE SONNET';
+  } else {
+    btnTurbo.className = 'mode-btn active-turbo';
+    label.style.color = 'rgba(255,251,0,0.5)';
+    label.innerHTML = 'ACTIVE: Quick Answers &amp; Image Analysis / ශීඝ්‍ර &amp; රූප';
+    statusLabel.textContent = 'MODE: TURBO-VISION // GEMINI FLASH';
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// SIDEBAR TOGGLE
+// ──────────────────────────────────────────────────────
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');
+});
+
+// ──────────────────────────────────────────────────────
+// HELPER: insert topic into textarea
+// ──────────────────────────────────────────────────────
+function insertTopic(text) {
+  const inp = document.getElementById('prompt-input');
+  inp.value = text;
+  autoResize(inp);
+  inp.focus();
+}
+
+function chipPrompt(text) {
+  insertTopic(text);
+  sendMessage();
+}
+
+// ──────────────────────────────────────────────────────
+// CHAR COUNT
+// ──────────────────────────────────────────────────────
+document.getElementById('prompt-input').addEventListener('input', () => {
+  const v = document.getElementById('prompt-input').value;
+  const cc = document.getElementById('char-count');
+  cc.textContent = v.length > 0 ? `${v.length} chars` : '';
+});
+
+// ──────────────────────────────────────────────────────
+// TEXTAREA AUTO-RESIZE
+// ──────────────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ──────────────────────────────────────────────────────
+// KEY HANDLER
+// ──────────────────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// IMAGE HANDLING
+// ──────────────────────────────────────────────────────
+function triggerImageUpload() {
+  document.getElementById('image-input').click();
+}
+
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const mime   = file.type;
+    pendingImage = { base64, mime, name: file.name };
+
+    document.getElementById('image-preview-thumb').src = e.target.result;
+    document.getElementById('image-preview-name').textContent = `📷 ${file.name}`;
+    document.getElementById('image-preview-wrap').classList.add('show');
+
+    // Auto-switch to turbo mode for image
+    setMode('turbo');
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function removeImage() {
+  pendingImage = null;
+  document.getElementById('image-preview-wrap').classList.remove('show');
+  document.getElementById('image-preview-thumb').src = '';
+}
+
+// ──────────────────────────────────────────────────────
+// RENDER MARKDOWN + MATH
+// ──────────────────────────────────────────────────────
+function renderContent(raw) {
+  // Use marked for markdown
+  let html = marked.parse(raw || '');
+
+  // Create temp div, render KaTeX
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+
+  renderMathInElement(temp, {
+    delimiters: [
+      { left: '$$', right: '$$', display: true  },
+      { left: '$',  right: '$',  display: false },
+      { left: '\\(', right: '\\)', display: false },
+      { left: '\\[', right: '\\]', display: true  },
+    ],
+    throwOnError: false,
+  });
+
+  return temp.innerHTML;
+}
+
+// ──────────────────────────────────────────────────────
+// APPEND MESSAGES
+// ──────────────────────────────────────────────────────
+function appendUserMessage(text, imageData) {
+  const container = document.getElementById('chat-messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-user';
+
+  let imgHtml = '';
+  if (imageData) {
+    imgHtml = `<img class="user-img" src="data:${imageData.mime};base64,${imageData.base64}" alt="${imageData.name}" />`;
+  }
+
+  wrap.innerHTML = `
+    <div style="text-align:right; font-size:9px; color:rgba(57,255,20,0.3); margin-bottom:4px;">
+      USER@TERMINAL &nbsp;|&nbsp; ${timestamp()}
+    </div>
+    <div class="bubble">
+      ${escapeHtml(text)}
+      ${imgHtml}
+    </div>`;
+  container.appendChild(wrap);
+  scrollBottom();
+}
+
+function appendTypingIndicator() {
+  const container = document.getElementById('chat-messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-ai';
+  wrap.id = 'typing-indicator';
+  wrap.innerHTML = `
+    <div class="ai-header">
+      <span class="pulse-dot"></span>
+      <span>MUBRA CORE PROCESSING... / සකස් කෙරෙමින්...</span>
+    </div>
+    <div class="bubble" style="padding:12px 18px;">
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span style="font-size:10px; color:rgba(57,255,20,0.4); margin-left:8px;">
+        AI ප්‍රතිචාරය ජනනය කෙරෙමින්...
+      </span>
+    </div>`;
+  container.appendChild(wrap);
+  scrollBottom();
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+function appendAIMessage(content, modeLabel) {
+  const container = document.getElementById('chat-messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-ai';
+
+  const modeBadge = modeLabel === 'turbo'
+    ? `<span style="color:var(--cyber); margin-left:6px;">[TURBO-VISION]</span>`
+    : `<span style="color:var(--neon); margin-left:6px;">[LOGIC-CORE]</span>`;
+
+  wrap.innerHTML = `
+    <div class="ai-header">
+      <span class="pulse-dot"></span>
+      <span>MUBRA SYSTEM CORE 9.v1 ${modeBadge} &nbsp;|&nbsp; ${timestamp()}</span>
+    </div>
+    <div class="bubble" id="ai-bubble-${Date.now()}">
+      ${renderContent(content)}
+    </div>`;
+  container.appendChild(wrap);
+  scrollBottom();
+}
+
+function appendErrorMessage(msg) {
+  const container = document.getElementById('chat-messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-ai';
+  wrap.innerHTML = `
+    <div class="ai-header">
+      <span style="color:var(--red);">⚠</span>
+      <span class="red-text">SYSTEM ERROR / පද්ධති දෝෂය</span>
+    </div>
+    <div class="bubble" style="border-left-color:var(--red);">
+      <div class="error-msg">ERROR: ${escapeHtml(msg)}</div>
+      <div style="margin-top:8px; font-size:11px; color:rgba(57,255,20,0.5);">
+        නැවත උත්සාහ කරන්න. / Try again. Check API key configuration.
+      </div>
+    </div>`;
+  container.appendChild(wrap);
+  scrollBottom();
+}
+
+// ──────────────────────────────────────────────────────
+// SEND MESSAGE
+// ──────────────────────────────────────────────────────
+async function sendMessage() {
+  if (isProcessing) return;
+
+  const inp = document.getElementById('prompt-input');
+  const text = inp.value.trim();
+  if (!text && !pendingImage) return;
+
+  const displayText = text || '[IMAGE SCAN REQUEST / රූප ස්කෑන් ඉල්ලීම]';
+  const imageSnap   = pendingImage ? { ...pendingImage } : null;
+
+  // UI
+  inp.value = '';
+  autoResize(inp);
+  document.getElementById('char-count').textContent = '';
+  isProcessing = true;
+  setUIBusy(true);
+  appendUserMessage(displayText, imageSnap);
+  if (imageSnap) removeImage();
+
+  // Build history entry
+  const userEntry = { role: 'user', content: text || 'Please analyze this image.' };
+  chatHistory.push(userEntry);
+
+  appendTypingIndicator();
+
+  try {
+    const payload = {
+      mode:    currentMode,
+      message: text || 'Analyze this image for A/L Chemistry.',
+      history: chatHistory.slice(0, -1),   // exclude current (already in message)
+    };
+    if (imageSnap) {
+      payload.image = { base64: imageSnap.base64, mime: imageSnap.mime };
+    }
+
+    const res = await fetch('/api/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    removeTypingIndicator();
+
+    if (!res.ok || data.error) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+
+    const aiText = data.response || '';
+    chatHistory.push({ role: 'assistant', content: aiText });
+    appendAIMessage(aiText, currentMode);
+
+    // Hide chips after first real exchange
+    const chips = document.getElementById('chips-bar');
+    if (chips && chatHistory.length > 2) {
+      chips.style.display = 'none';
+    }
+
+  } catch (err) {
+    removeTypingIndicator();
+    chatHistory.pop(); // remove user entry if failed
+    appendErrorMessage(err.message);
+  } finally {
+    isProcessing = false;
+    setUIBusy(false);
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// CLEAR CHAT
+// ──────────────────────────────────────────────────────
+function clearChat() {
+  chatHistory = [];
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = '';
+  // Restore chips
+  const chips = document.getElementById('chips-bar');
+  if (chips) chips.style.display = 'flex';
+  // Re-add welcome
+  appendAIMessage(`**සිංහල A/L රසායන ශාස්ත්‍ර AI ගුරු ශ්‍රේෂ්ඨ — ක්‍රියාකාරීයි**\n\nConversation cleared. / සංවාදය ඉවත් කරන ලදී.\n\nනව ප්‍රශ්නයක් ඇසීමට ස්වාගතයි! / Ready for your next Chemistry question!`, currentMode);
+}
+
+// ──────────────────────────────────────────────────────
+// UI HELPERS
+// ──────────────────────────────────────────────────────
+function setUIBusy(busy) {
+  document.getElementById('send-btn').disabled = busy;
+  document.getElementById('prompt-input').disabled = busy;
+}
+
+function scrollBottom() {
+  const c = document.getElementById('chat-messages');
+  c.scrollTop = c.scrollHeight;
+}
+
+function timestamp() {
+  return new Date().toLocaleTimeString('en-US', { hour12: false });
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ──────────────────────────────────────────────────────
+// CLOCK
+// ──────────────────────────────────────────────────────
+function updateClock() {
+  const el = document.getElementById('clock-display');
+  if (el) {
+    const now = new Date();
+    el.textContent = `SYS_TIME: ${now.toLocaleTimeString('en-US', { hour12: false })} | ${now.toLocaleDateString('en-US')}`;
+  }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ──────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────
+runBoot();
+</script>
+
+</body>
+</html>
